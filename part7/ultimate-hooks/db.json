@@ -1,0 +1,56 @@
+{
+  "notes": [
+    {
+      "id": 1,
+      "content": "custom-hooks are awesome!"
+    },
+    {
+      "id": 2,
+      "content": "best feature ever <3"
+    },
+    {
+      "content": "hooks are quite useful",
+      "id": 3
+    },
+    {
+      "content": "Fullstack open is the best",
+      "id": 4
+    },
+    {
+      "content": "Midudev is a crack",
+      "id": 5
+    }
+  ],
+  "persons": [
+    {
+      "id": 1,
+      "name": "mluukkai",
+      "number": "040-5483923"
+    },
+    {
+      "id": 2,
+      "name": "hellas",
+      "number": "012-123123"
+    },
+    {
+      "name": "Juan",
+      "number": "180-3659133",
+      "id": 3
+    },
+    {
+      "name": "Adriana",
+      "number": "171-5859367",
+      "id": 4
+    },
+    {
+      "name": "Midu",
+      "number": "012-3456789",
+      "id": 5
+    },
+    {
+      "name": "Pablo",
+      "number": "014-6913265",
+      "id": 6
+    }
+  ]
+}
