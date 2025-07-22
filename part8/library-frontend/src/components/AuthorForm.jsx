@@ -5,9 +5,21 @@ const AuthorForm = () => {
     const [name, setName] = useState('');
     const [born, setBorn] = useState('');
     const [updateAuthor] = useMutation(EDIT_AUTHOR, {
-        refetchQueries: [{ query: ALL_AUTHORS }],
         onError: (error) => {
             console.log(error.graphQLErrors[0].message);
+        },
+        update: (cache, response) => {
+            cache.updateQuery({ query: ALL_AUTHORS }, ({ allAuthors }) => ({
+                allAuthors: allAuthors.map((a) => {
+                    if (a.name === response.data.editAuthor.name) {
+                        return {
+                            ...a,
+                            born: response.data.editAuthor.born,
+                        };
+                    }
+                    return a;
+                }),
+            }));
         },
     });
     const result = useQuery(ALL_AUTHORS);
