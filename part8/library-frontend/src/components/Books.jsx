@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@apollo/client';
-import { ALL_BOOKS } from '../queries';
+import ALL_BOOKS from '../graphql/queries/allBooks';
 
 const Books = (props) => {
     const [filterGenre, setFilterGenre] = useState(null);

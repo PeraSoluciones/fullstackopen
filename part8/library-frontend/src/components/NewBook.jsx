@@ -1,6 +1,10 @@
 import { useState } from 'react';
-import { useMutation } from '@apollo/client';
-import { ADD_BOOK, ALL_BOOKS, ALL_AUTHORS, ME } from '../queries';
+import { useMutation, useSubscription } from '@apollo/client';
+import ADD_BOOK from '../graphql/mutations/addBook';
+import ALL_BOOKS from '../graphql/queries/allBooks';
+import ALL_AUTHORS from '../graphql/queries/allAuthors';
+import BOOK_ADDED from '../graphql/subscriptions/addedBook';
+import ME from '../graphql/queries/me';
 
 const NewBook = (props) => {
     const [title, setTitle] = useState('');
@@ -9,92 +13,102 @@ const NewBook = (props) => {
     const [genre, setGenre] = useState('');
     const [genres, setGenres] = useState([]);
 
+    const updateCacheWith = (cache, newBook) => {
+        const updateCacheForQuery = (variables) => {
+            try {
+                // 1. Leer la consulta con las variables específicas
+                const dataInStore = cache.readQuery({
+                    query: ALL_BOOKS,
+                    variables,
+                });
+
+                if (dataInStore) {
+                    // 2. Si existe, escribir la versión actualizada
+                    cache.writeQuery({
+                        query: ALL_BOOKS,
+                        variables,
+                        data: {
+                            allBooks: dataInStore.allBooks.concat(newBook),
+                        },
+                    });
+                }
+            } catch (e) {
+                // La consulta no está en la caché, lo cual es esperado.
+                // No es necesario hacer nada.
+                console.log(
+                    `Query with variables ${JSON.stringify(
+                        variables
+                    )} not found in cache. Skipping update.`
+                );
+            }
+        };
+
+        // A. Actualizar la consulta general (sin filtro de género)
+        updateCacheForQuery(undefined); // o undefined, dependiendo de cómo se llame sin filtro
+
+        // B. Actualizar la caché para cada género del libro nuevo
+        const dataMe = cache.readQuery({ query: ME });
+        newBook.genres.forEach((genre) => {
+            if (dataMe.me.favoriteGenre === genre) {
+                updateCacheForQuery({ genre });
+            }
+        });
+
+        // C. Actualizar la lista de autores
+        try {
+            const { allAuthors } = cache.readQuery({
+                query: ALL_AUTHORS,
+            });
+            // Verirficar si ya existe el autor
+            const authorInStore = allAuthors.some(
+                (a) => a.name === newBook.author.name
+            );
+
+            cache.writeQuery({
+                query: ALL_AUTHORS,
+                data: {
+                    allAuthors: authorInStore
+                        ? allAuthors.map((a) => {
+                              if (a.name === newBook.author.name) {
+                                  return {
+                                      ...a,
+                                      bookCount: a.bookCount + 1,
+                                  };
+                              }
+                              return a;
+                          })
+                        : allAuthors.concat({
+                              ...newBook.author,
+                              born: null,
+                              bookCount: 1,
+                          }),
+                },
+            });
+            return;
+        } catch (e) {
+            console.log(
+                'AllAuthors query not found in cache. Skipping update.'
+            );
+        }
+    };
+
     const [addBook] = useMutation(ADD_BOOK, {
         onError: (error) => {
             console.log(error);
         },
 
-        update: (cache, response) => {
-            const addedBook = response.data.addBook;
+        // update: (cache, response) => {
+        //     const addedBook = response.data.addBook;
 
+        //     // Función auxiliar para actualizar la caché de forma segura
+        //     updateCacheWith(cache, addedBook);
+        // },
+    });
+
+    useSubscription(BOOK_ADDED, {
+        onData: ({ data, client }) => {
             // Función auxiliar para actualizar la caché de forma segura
-            const updateCacheWith = (newBook) => {
-                const updateCacheForQuery = (variables) => {
-                    try {
-                        // 1. Leer la consulta con las variables específicas
-                        const dataInStore = cache.readQuery({
-                            query: ALL_BOOKS,
-                            variables,
-                        });
-
-                        if (dataInStore) {
-                            // 2. Si existe, escribir la versión actualizada
-                            cache.writeQuery({
-                                query: ALL_BOOKS,
-                                variables,
-                                data: {
-                                    allBooks:
-                                        dataInStore.allBooks.concat(newBook),
-                                },
-                            });
-                        }
-                    } catch (e) {
-                        // La consulta no está en la caché, lo cual es esperado.
-                        // No es necesario hacer nada.
-                        console.log(
-                            `Query with variables ${JSON.stringify(
-                                variables
-                            )} not found in cache. Skipping update.`
-                        );
-                    }
-                };
-
-                // A. Actualizar la consulta general (sin filtro de género)
-                updateCacheForQuery(undefined); // o undefined, dependiendo de cómo se llame sin filtro
-
-                // B. Actualizar la caché para cada género del libro nuevo
-                const dataMe = cache.readQuery({ query: ME });
-                newBook.genres.forEach((genre) => {
-                    if (dataMe.me.favoriteGenre === genre) {
-                        updateCacheForQuery({ genre });
-                    }
-                });
-
-                // C. Actualizar la lista de autores
-                try {
-                    const { allAuthors } = cache.readQuery({
-                        query: ALL_AUTHORS,
-                    });
-                    // Verirficar si ya existe el autor
-                    const authorInStore = allAuthors.some(
-                        (a) => a.name === newBook.author.name
-                    );
-
-                    cache.writeQuery({
-                        query: ALL_AUTHORS,
-                        data: {
-                            allAuthors: authorInStore
-                                ? allAuthors.map((a) => {
-                                      if (a.name === newBook.author.name) {
-                                          return {
-                                              ...a,
-                                              bookCount: a.bookCount + 1,
-                                          };
-                                      }
-                                      return a;
-                                  })
-                                : allAuthors.concat(newBook.author),
-                        },
-                    });
-                    return;
-                } catch (e) {
-                    console.log(
-                        'AllAuthors query not found in cache. Skipping update.'
-                    );
-                }
-            };
-
-            updateCacheWith(addedBook);
+            updateCacheWith(client.cache, data.data.bookAdded);
         },
     });
 
