@@ -1,12 +1,17 @@
-import diaganoses from '../../data/diagnoses';
+import diagnoses from '../../data/diagnoses';
 import { Diagnosis } from '../types';
 
 const getEntries = (): Diagnosis[] => {
-  return diaganoses;
+  return diagnoses;
 };
 
-const addEntry = () => {
-  return null;
+export const findById = (id: string): Diagnosis | undefined => {
+  return diagnoses.find((d) => d.code === id);
 };
 
-export default { getEntries, addEntry };
+const addEntry = (entry: Diagnosis) => {
+  diagnoses.push(entry);
+  return entry;
+};
+
+export default { getEntries, addEntry, findById };

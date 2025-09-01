@@ -12,6 +12,7 @@ const getPatients = () => {
         dateOfBirth,
         gender,
         occupation,
+        entries: [],
     }));
 };
 const addPatient = (entry) => {
@@ -20,4 +21,15 @@ const addPatient = (entry) => {
     patients_1.default.push(newPatientEntry);
     return newPatientEntry;
 };
-exports.default = { getPatients, addPatient };
+const findById = (id) => {
+    const entry = patients_1.default.find((p) => p.id === id);
+    return entry;
+};
+const addEntry = (patientId, entry) => {
+    var _a, _b;
+    const id = (0, uuid_1.v4)();
+    const newEntry = Object.assign({ id }, entry);
+    (_b = (_a = patients_1.default.find((p) => p.id === patientId)) === null || _a === void 0 ? void 0 : _a.entries) === null || _b === void 0 ? void 0 : _b.push(newEntry);
+    return newEntry;
+};
+exports.default = { getPatients, addPatient, findById, addEntry };
